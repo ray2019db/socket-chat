@@ -27,16 +27,18 @@ io.on('connection', (client) => { // Establece la conexión con el Socket del Cl
 
             usuarios.agregarPersona(client.id, usuario.nombre, usuario.sala); // Agrega al arreglo de personas "this.personas" de la clase "Usuarios" una persona mediante el método "agregarPersona()" que tiene como parámetros el "id = clien.id" creado automáticamente por el Socket del Servidor cuando el cliente se conecta con este, el "nombre = usuario.nombre" que viene en la data del evento emitido y la "sala = usuario.sala" que viene en la data del evento emitido
             client.broadcast.to(usuario.sala).emit('personas', usuarios.getPersonasPorSala(usuario.sala)); // Emite un evento "broadcast" para todos los Sockets Clientes que pertenecen a la misma sala. Devuelve un arreglo de todas las personas conectadas al chat que pertenecen a la misma sala
+            client.broadcast.to(usuario.sala).emit('enviarMensaje', crearMensaje('Administrador', `${usuario.nombre} se Conectó`)); // Emite un evento "broadcast" para todos los Sockets Clientes que pertenecen a la misma sala con el mensaje creado por la función "crearMensaje()"
             callback(usuarios.getPersonasPorSala(usuario.sala)); // Devuelve en el callback las personas almacenadas dentro del arreglo "let personas"
         }); //------------------------------------------Fin Evento "escucharChat"-------------------------------------------------------------------------------
 
         // ----------------------------------------------------------------------------------------------------------------------------------------------------
         // Escucha el evento "crearMensaje" para enviarlo a los Sockets Clientes del Socket Servidor
         // ----------------------------------------------------------------------------------------------------------------------------------------------------
-        client.on('crearMensaje', (data) => {
-            let persona = usuarios.getPersona(client.id); // Almacena los datos de la persona en un objeto ""{ id: 'xxxxxxxxxxxx', nombre: 'xxxxxxxxxxxx'}"" cuyo "id = client.id"
+        client.on('crearMensaje', (data, callback) => { // Recibe como parámetros la "data" en un objeto con la sgte estuctura "{nombre: 'xxxxxx', mensaje: 'xxxxx'}" y un callback donde devolverá la respuesta al Socket Cliente que será un objeto con la sgte estructura "{nombre: 'xxxxxx', mensaje: 'xxxxx', fecha: 'xxxxxxx'}"
+            let persona = usuarios.getPersona(client.id); // Almacena los datos de la persona en un objeto ""{ id: 'xxxxxxxxxxxx', nombre: 'xxxxxxxxxxxx', sala: 'xxxxxxx'}"" cuyo "id = client.id"
             let mensaje = crearMensaje(persona.nombre, data.mensaje); // Almacena en un objeto el nombre y el mensaje que se desea enviar a todos las personas que pertenezcan a la misma sala
-            client.broadcast.to(persona.sala).emit('enviarMensaje', mensaje); // Envía un evento "mensaje" a todos los clientes "broadcast" que pertenezcan a la misma sala que la persona mediante el método "to(persona.sala)"
+            client.broadcast.to(persona.sala).emit('enviarMensaje', mensaje); // Envía en un evento "mensaje" a todos los clientes "broadcast" que pertenezcan a la misma sala que la persona mediante el método "to(persona.sala)" un objeto que es mensaje con la sgte estructura "{nombre: 'xxxxxx', mensaje: 'xxxxx', fecha: 'xxxxxxx'}"
+            callback(mensaje); // Devuelve el "mensaje" mediante el "callback" para que sea recibido por el Socket Cliente como respuesta. El mensaje tendrá la sgte estructura "{nombre: 'xxxxxx', mensaje: 'xxxxx', fecha: 'xxxxxxx'}"
         });
         //----------------------------------------------------------------------------------------------Fin----------------------------------------------------------------------------
 
@@ -54,8 +56,8 @@ io.on('connection', (client) => { // Establece la conexión con el Socket del Cl
         // ----------------------------------------------------------------------------------------------------------------------------------------------------
         client.on('disconnect', () => { // Con el método "on()" puedo escuchar si el usuario (client) se desconectó. El 1er parámetro tal cual literal 'disconnect' (nombre del evento por defecto) y el 2do es un callback que ejecuta su contenido cuando detecta que el usuario se desconecta
             // console.log('Usuario Desconectado');
-            let personaBorrada = usuarios.borrarPersona(client.id); // Almacena en un objeto los datos de la persona borrada del arreglo "personas" (cliente desconectado), "{ id: 'xxxxxxxxxxxx', nombre: 'xxxxxxxxxxxx'}"
-            client.broadcast.to(personaBorrada.sala).emit('desconectarPersona', crearMensaje('Administrador', `${personaBorrada.nombre} se desconectó`)); // Evento broadcast para todos los Sockets Clientes que pertenecen a la misma sala, emite el nombre de la persona y el mensaje
+            let personaBorrada = usuarios.borrarPersona(client.id); // Almacena en un objeto los datos de la persona borrada del arreglo "personas" (cliente desconectado), "{ id: 'xxxxxxxxxxxx', nombre: 'xxxxxxxxxxxx', sala: 'xxxxxxx' }"
+            client.broadcast.to(personaBorrada.sala).emit('enviarMensaje', crearMensaje('Administrador', `${personaBorrada.nombre} se Desconectó`)); // Evento broadcast para todos los Sockets Clientes que pertenecen a la misma sala, emite el nombre de la persona y el mensaje
             client.broadcast.to(personaBorrada.sala).emit('personas', usuarios.getPersonasPorSala(personaBorrada.sala)); // Evento broadcast para todos los Sockets Clientes que pertenecen a la misma sala, emite un arreglo con todas las personas conectadas al chat
         }); //-------------------------------------Fin evento "disconnect"-----------------------------------------------------------------------------------------------
 
